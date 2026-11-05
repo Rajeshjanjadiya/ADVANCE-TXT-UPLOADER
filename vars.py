@@ -1,8 +1,11 @@
-# Don't Remove Credit Tg - @newstudent1885
-# Ask Doubt on telegram @newstudent1885
+import os
+from dotenv import load_dotenv
 
-from os import environ
+load_dotenv()
 
-API_ID = int(environ.get("API_ID", "2447366")) #Replace with your api id
-API_HASH = environ.get("API_HASH", "5dghgfccc") #Replace with your api hash
-BOT_TOKEN = environ.get("BOT_TOKEN", "7231089830:A") #Replace with your bot token
+API_ID = int(os.getenv("API_ID", "0"))
+API_HASH = os.getenv("API_HASH", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+
+if not API_ID or not API_HASH or not BOT_TOKEN:
+    raise RuntimeError("API_ID, API_HASH aur BOT_TOKEN .env file mein set karein.")

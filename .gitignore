@@ -1,0 +1,15 @@
+.env
+*.session
+*.session-journal
+__pycache__/
+*.pyc
+*.log
+downloads/
+temp/
+*.mp4
+*.mkv
+*.pdf
+*.zip
+*_backup*.py
+*_before_*.py
+RAS FOUNDATION BATCH - RECORDED.txt

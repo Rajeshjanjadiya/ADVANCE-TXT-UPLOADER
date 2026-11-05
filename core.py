@@ -220,75 +220,101 @@ def save_to_file(video_links, channel_name):
             file.write(f"{number}. {title}: {formatted_url}\n")
     return filename
 
+
+
 async def download_video(url, cmd, name):
-    download_cmd = f'{cmd} -R 25 --fragment-retries 25 --external-downloader aria2c --downloader-args "aria2c: -x 16 -j 32"'
-    global failed_counter
-    print(download_cmd)
-    logging.info(download_cmd)
-    k = subprocess.run(download_cmd, shell=True)
-    
-    # Check if the URL is of type 'visionias' or 'penpencilvod'
-    if "visionias" in cmd:
-        return await download_visionias(url, cmd, name)
-    elif "penpencilvod" in cmd:
-        return await download_penpencilvod(url, cmd, name)
-    else:
-        # Default handling for other types of URLs
-        return await default_download(url, cmd, name)
+    import glob
+    import json
 
-async def download_visionias(url, cmd, name):
-    global failed_counter
-    # Retry logic for 'visionias' URLs
-    if failed_counter <= 10:
-        failed_counter += 1
-        await asyncio.sleep(5)
-        return await download_video(url, cmd, name)
-    else:
-        # Reset failed_counter if the download succeeds
-        failed_counter = 0
-        return await default_download(url, cmd, name)
+    base = os.path.splitext(name)[0]
+    extensions = (".mp4", ".mkv", ".webm", ".m4v", ".mov")
 
+    def valid_video(filename):
+        if not os.path.isfile(filename) or os.path.getsize(filename) == 0:
+            return False
 
-async def download_penpencilvod(url, cmd, name):
-    global failed_counter
-    # Retry logic for 'penpencilvod' URLs
-    if failed_counter <= 10:
-        failed_counter += 1
-        await asyncio.sleep(5)
-        return await download_video(url, cmd, name)
-    else:
-        # Reset failed_counter if the download succeeds
-        failed_counter = 0
-        return await default_download(url, cmd, name)
+        result = subprocess.run(
+            [
+                "ffprobe", "-v", "error",
+                "-show_entries", "stream=codec_type",
+                "-show_entries", "format=duration",
+                "-of", "json", filename
+            ],
+            capture_output=True,
+            text=True
+        )
 
-async def download_video(url,cmd, name):
-    download_cmd = f'{cmd} -R 25 --fragment-retries 25 --external-downloader aria2c --downloader-args "aria2c: -x 16 -j 32"'
-    global failed_counter
-    print(download_cmd)
-    logging.info(download_cmd)
-    k = subprocess.run(download_cmd, shell=True)
-    if "visionias" in cmd and k.returncode != 0 and failed_counter <= 10:
-        failed_counter += 1
-        await asyncio.sleep(5)
-        await download_video(url, cmd, name)
-    failed_counter = 0
-    try:
-        if os.path.isfile(name):
-            return name
-        elif os.path.isfile(f"{name}.webm"):
-            return f"{name}.webm"
-        name = name.split(".")[0]
-        if os.path.isfile(f"{name}.mkv"):
-            return f"{name}.mkv"
-        elif os.path.isfile(f"{name}.mp4"):
-            return f"{name}.mp4"
-        elif os.path.isfile(f"{name}.mp4.webm"):
-            return f"{name}.mp4.webm"
+        if result.returncode != 0:
+            return False
 
-        return name
-    except FileNotFoundError as exc:
-        return os.path.isfile.splitext[0] + "." + "mp4"
+        try:
+            data = json.loads(result.stdout)
+            streams = data.get("streams", [])
+            duration = float(data.get("format", {}).get("duration", 0))
+            return duration > 0 and any(
+                stream.get("codec_type") == "video"
+                for stream in streams
+            )
+        except (ValueError, TypeError, json.JSONDecodeError):
+            return False
 
+    candidates = list(dict.fromkeys(
+        [name] +
+        [base + ext for ext in extensions] +
+        glob.glob(base + ".*")
+    ))
+
+    candidates = [
+        f for f in candidates
+        if os.path.splitext(f)[1].lower() in extensions
+    ]
+
+    for attempt in range(1, 4):
+        old_state = {}
+
+        for filename in candidates:
+            if os.path.isfile(filename):
+                stat = os.stat(filename)
+                old_state[filename] = (stat.st_mtime_ns, stat.st_size)
+
+        download_cmd = (
+            f'{cmd} --retries 5 '
+            f'--fragment-retries 10 '
+            f'--retry-sleep 3'
+        )
+
+        logging.info("Download attempt %s: %s", attempt, download_cmd)
+        print(f"Download attempt {attempt}/3")
+
+        result = await asyncio.to_thread(
+            subprocess.run,
+            download_cmd,
+            shell=True,
+            check=False
+        )
+
+        for filename in candidates:
+            if not os.path.isfile(filename):
+                continue
+
+            stat = os.stat(filename)
+            current_state = (stat.st_mtime_ns, stat.st_size)
+
+            if current_state == old_state.get(filename):
+                continue
+
+            if await asyncio.to_thread(valid_video, filename):
+                logging.info("Verified video: %s", filename)
+                return filename
+
+        if attempt < 3:
+            print(f"Download failed. Retry {attempt}/3")
+            await asyncio.sleep(5)
+
+    raise RuntimeError(
+        f"Download failed or video verification failed after 3 attempts. "
+        f"Exit code: {result.returncode}"
+    )
 
 async def send_doc(bot: Client, m: Message,cc,ka,cc1,prog,count,name):
     reply = await m.reply_text(f"🚀🚀🚀𝗨𝗣𝗟𝗢𝗔𝗗𝗜𝗡𝗚🚀🚀🚀 » `{name}`\n\n🤖𝗕𝗢𝗧 𝗠𝗔𝗗𝗘 𝗕𝗬 ➤ 𝗧𝗨𝗦𝗛𝗔𝗥")

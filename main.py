@@ -9,6 +9,7 @@ import time
 import m3u8
 import aiohttp
 import asyncio
+asyncio.set_event_loop(asyncio.new_event_loop())
 import requests
 import subprocess
 import urllib.parse
@@ -54,13 +55,13 @@ async def show_random_emojis(message):
     return emoji_message
     
 # Define the owner's user ID
-OWNER_ID = 5840594311 # Replace with the actual owner's user ID
+OWNER_ID = 5999785669 # Replace with the actual owner's user ID
 
 # List of sudo users (initially empty or pre-populated)
-SUDO_USERS = [5840594311]
+SUDO_USERS = [5999785669]
 
 # ✅ Multiple AUTH CHANNELS allowed
-AUTH_CHANNELS = [-1002605113558,-1002663510614]  # Add more channel IDs here
+AUTH_CHANNELS = []  # Add more channel IDs here
 
 # Function to check if a user is authorized
 def is_authorized(user_id: int) -> bool:
@@ -487,29 +488,24 @@ async def upload(bot: Client, m: Message):
         b_name = raw_text0
     
 
-    await editable.edit("**📸 𝗘𝗻𝘁𝗲𝗿 𝗥𝗲𝘀𝗼𝗹𝘂𝘁𝗶𝗼𝗻 📸**\n➤ `144`\n➤ `240`\n➤ `360`\n➤ `480`\n➤ `720`\n➤ `1080`")
-    input2: Message = await bot.listen(editable.chat.id)
-    raw_text2 = input2.text
-    await input2.delete(True)
-    try:
-        if raw_text2 == "144":
-            res = "256x144"
-        elif raw_text2 == "240":
-            res = "426x240"
-        elif raw_text2 == "360":
-            res = "640x360"
-        elif raw_text2 == "480":
-            res = "854x480"
-        elif raw_text2 == "720":
-            res = "1280x720"
-        elif raw_text2 == "1080":
-            res = "1920x1080" 
-        else: 
-            res = "UN"
-    except Exception:
-            res = "UN"
-    
-    
+    if video_count > 0:
+        await editable.edit("**📸 𝗘𝗻𝘁𝗲𝗿 𝗥𝗲𝘀𝗼𝗹𝘂𝘁𝗶𝗼𝗻 📸**\n➤ `144`\n➤ `240`\n➤ `360`\n➤ `480`\n➤ `720`\n➤ `1080`")
+        input2: Message = await bot.listen(editable.chat.id)
+        raw_text2 = input2.text
+        await input2.delete(True)
+
+        resolutions = {
+            "144": "256x144",
+            "240": "426x240",
+            "360": "640x360",
+            "480": "854x480",
+            "720": "1280x720",
+            "1080": "1920x1080"
+        }
+        res = resolutions.get(raw_text2, "UN")
+    else:
+        raw_text2 = "720"
+        res = "UN"
 
     await editable.edit("📛 𝗘𝗻𝘁𝗲𝗿 𝗬𝗼𝘂𝗿 𝗡𝗮𝗺𝗲 📛\n\n🐥 𝗦𝗲𝗻𝗱 `1` 𝗙𝗼𝗿 𝗨𝘀𝗲 𝗗𝗲𝗳𝗮𝘂𝗹𝘁 🐥")
     input3: Message = await bot.listen(editable.chat.id)
@@ -537,7 +533,7 @@ async def upload(bot: Client, m: Message):
     input4: Message = await bot.listen(editable.chat.id)
     raw_text4 = input4.text
     await input4.delete(True)
-    if raw_text4 == 3:
+    if raw_text4.strip() == '3':
         MR = token
     else:
         MR = raw_text4
@@ -550,12 +546,7 @@ async def upload(bot: Client, m: Message):
     await input6.delete(True)
     await editable.delete()
 
-    #thumb = input6.text
-    #if thumb.startswith("http://") or thumb.startswith("https://"):
-        #getstatusoutput(f"wget '{thumb}' -O 'thumb.jpg'")
-        #thumb = "thumb.jpg"
-    else:
-        thumb == "no"
+    thumb = "no"
     failed_count =0
     if len(links) == 1:
         count = 1
@@ -839,5 +830,3 @@ async def upload(bot: Client, m: Message):
     await m.reply_text(f"<pre><code>📥𝗘𝘅𝘁𝗿𝗮𝗰𝘁𝗲𝗱 𝗕𝘆 ➤『{CR}』</code></pre>")          
 
 bot.run()
-if __name__ == "__main__":
-    asyncio.run(main())
